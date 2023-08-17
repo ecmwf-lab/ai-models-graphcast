@@ -44,7 +44,11 @@ setuptools.setup(
     install_requires=[
         "ai-models",
         "graphcast",
+        "jax[cuda11_pip]"
         "earthkit-meteo",
+    ],
+    dependency_links=[
+        "https://storage.googleapis.com/jax-releases/jax_cuda_releases.html",
     ],
     zip_safe=True,
     keywords="tool",
