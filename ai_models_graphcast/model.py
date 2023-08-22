@@ -43,7 +43,6 @@ class GraphcastModel(Model):
         "stats/diffs_stddev_by_level.nc",
         "stats/mean_by_level.nc",
         "stats/stddev_by_level.nc",
-        "dataset/source-hres_date-2022-01-01_res-0.25_levels-13_steps-04.nc",
     ]
 
     # Input
