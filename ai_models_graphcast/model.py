@@ -37,9 +37,6 @@ class GraphcastModel(Model):
     download_url = "https://storage.googleapis.com/dm_graphcast/{file}"
     expver = "dmgc"
 
-    # Initialise from forecast instead of analysis
-    retrieve = {"type": "fc"}
-
     # Download
     download_files = [
         "params/GraphCast_operational - ERA5-HRES 1979-2021 - resolution 0.25 - pressure levels 13 - mesh 2to6 - precipitation output only.npz",
