@@ -99,11 +99,13 @@ class GraphcastModel(Model):
 
     def load_model(self):
         with self.timer(f"Loading {self.download_files[0]}"):
+            def get_path(filename):
+                return os.path.join(self.assets, filename)
             diffs_stddev_by_level = xarray.load_dataset(
-                self.download_files[1]
+                get_path(self.download_files[1])
             ).compute()
-            mean_by_level = xarray.load_dataset(self.download_files[2]).compute()
-            stddev_by_level = xarray.load_dataset(self.download_files[3]).compute()
+            mean_by_level = xarray.load_dataset(get_path(self.download_files[2])).compute()
+            stddev_by_level = xarray.load_dataset(get_path(self.download_files[3])).compute()
 
             def construct_wrapped_graphcast(model_config, task_config):
                 """Constructs and wraps the GraphCast Predictor."""
@@ -138,7 +140,7 @@ class GraphcastModel(Model):
                     inputs, targets_template=targets_template, forcings=forcings
                 )
 
-            with open(self.download_files[0], "rb") as f:
+            with open(get_path(self.download_files[0]), "rb") as f:
                 self.ckpt = checkpoint.load(f, graphcast.CheckPoint)
                 self.params = self.ckpt.params
                 self.state = {}
