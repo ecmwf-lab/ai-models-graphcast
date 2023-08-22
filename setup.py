@@ -44,7 +44,7 @@ setuptools.setup(
     install_requires=[
         "ai-models",
         "graphcast",
-        "jax[cuda11_pip]"
+        "jax[cuda11_pip]",
         "earthkit-meteo",
     ],
     dependency_links=[
