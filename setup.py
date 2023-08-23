@@ -41,13 +41,11 @@ setuptools.setup(
     url="https://github.com/ecmwf-lab/ai-models-graphcast",
     packages=setuptools.find_packages(),
     include_package_data=True,
+    # JAX requirements are in requirements.txt
     install_requires=[
         "ai-models",
-        "jax[cuda11_pip]",
-        "earthkit-meteo",
-    ],
-    dependency_links=[
-        "https://storage.googleapis.com/jax-releases/jax_cuda_releases.html",
+        # "earthkit-meteo", # For now installed from github until in pipy
+        "dm-tree",
     ],
     zip_safe=True,
     keywords="tool",

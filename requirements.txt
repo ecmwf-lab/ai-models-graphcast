@@ -1,0 +1,7 @@
+# JAX cannot be given in the setup.py as it pull code from google
+
+# call with pip install -r requirements.txt -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
+jax[cuda11_pip]
+jaxlib
+git+https://github.com/deepmind/graphcast.git@e622a15c1b9742d78f9b662f2af262604d58c204
