@@ -6,29 +6,28 @@
 # nor does it submit to any jurisdiction.
 
 
-import datetime
-import logging
-import os, functools
-from functools import cached_property
-import climetlab as cml
-from ai_models.model import Model
-
-from graphcast import autoregressive
-from graphcast import casting
-from graphcast import checkpoint
-from graphcast import data_utils
-from graphcast import graphcast
-from graphcast import normalization
-from graphcast import rollout
-from graphcast import xarray_jax
-from graphcast import xarray_tree
 import dataclasses
+import datetime
+import functools
+import logging
+import os
+from functools import cached_property
+
+import climetlab as cml
 import haiku as hk
-
-import xarray, jax
-
+import jax
 import numpy as np
+import xarray
 import xarray as xr
+from ai_models.model import Model
+from graphcast import (
+    autoregressive,
+    casting,
+    checkpoint,
+    data_utils,
+    graphcast,
+    normalization,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -39,7 +38,10 @@ class GraphcastModel(Model):
 
     # Download
     download_files = [
-        "params/GraphCast_operational - ERA5-HRES 1979-2021 - resolution 0.25 - pressure levels 13 - mesh 2to6 - precipitation output only.npz",
+        (
+            "params/GraphCast_operational - ERA5-HRES 1979-2021 - resolution 0.25 -"
+            " pressure levels 13 - mesh 2to6 - precipitation output only.npz"
+        ),
         "stats/diffs_stddev_by_level.nc",
         "stats/mean_by_level.nc",
         "stats/stddev_by_level.nc",
@@ -77,7 +79,11 @@ class GraphcastModel(Model):
         self.hour_steps = 6
         self.lagged = [-6, 0]
         self.params = None
-        self.ordering = self.param_sfc + [f"{param}{level}" for param in self.param_level_pl[0] for level in self.param_level_pl[1]]
+        self.ordering = self.param_sfc + [
+            f"{param}{level}"
+            for param in self.param_level_pl[0]
+            for level in self.param_level_pl[1]
+        ]
 
     # Jax doesn't seem to like passing configs as args through the jit. Passing it
     # in via partial (instead of capture by closure) forces jax to invalidate the
@@ -99,13 +105,19 @@ class GraphcastModel(Model):
 
     def load_model(self):
         with self.timer(f"Loading {self.download_files[0]}"):
+
             def get_path(filename):
                 return os.path.join(self.assets, filename)
+
             diffs_stddev_by_level = xarray.load_dataset(
                 get_path(self.download_files[1])
             ).compute()
-            mean_by_level = xarray.load_dataset(get_path(self.download_files[2])).compute()
-            stddev_by_level = xarray.load_dataset(get_path(self.download_files[3])).compute()
+            mean_by_level = xarray.load_dataset(
+                get_path(self.download_files[2])
+            ).compute()
+            stddev_by_level = xarray.load_dataset(
+                get_path(self.download_files[3])
+            ).compute()
 
             def construct_wrapped_graphcast(model_config, task_config):
                 """Constructs and wraps the GraphCast Predictor."""
@@ -234,7 +246,8 @@ class GraphcastModel(Model):
         ]
         datetimes = [self.start_date() + time_delta for time_delta in self.time_deltas]
         forcings_numpy = self.cml_variables(datetimes)
-        # Create an empty training dataset that has all the variables from sfc_fields and pl_fields but nans over the dimensions
+        # Create an empty training dataset that has all the variables from sfc_fields
+        # and pl_fields but nans over the dimensions
         # batch, time, lat, lon, level
         # This is so we can merge the forcings dataset with the training dataset
         # and then drop the batch dimension
@@ -287,11 +300,11 @@ class GraphcastModel(Model):
         )
 
     def run(self):
-        with self.timer(f"Building model"):
+        with self.timer("Building model"):
             self.load_model()
         # all_fields = self.all_fields.to_xarray()
 
-        with self.timer(f"Creating data"):
+        with self.timer("Creating data"):
             self.create_graphcast_inputs()
             self.create_training_xarray()
 
@@ -301,7 +314,7 @@ class GraphcastModel(Model):
                 **dataclasses.asdict(self.task_config),
             )
 
-        with self.timer(f"Doing full rollout prediction in JAX"):
+        with self.timer("Doing full rollout prediction in JAX"):
             output = self.model(
                 rng=jax.random.PRNGKey(0),
                 inputs=input_xr,
@@ -318,9 +331,15 @@ class GraphcastModel(Model):
 
         self.task_config.target_variables
 
-        output["total_precipitation_6hr"] = output.data_vars["total_precipitation_6hr"].cumsum(dim="time")
+        output["total_precipitation_6hr"] = output.data_vars[
+            "total_precipitation_6hr"
+        ].cumsum(dim="time")
 
-        self.all_fields = self.all_fields.order_by(valid_datetime="descending", param_level=self.ordering, remapping={"param_level": "{param}{levelist}"})
+        self.all_fields = self.all_fields.order_by(
+            valid_datetime="descending",
+            param_level=self.ordering,
+            remapping={"param_level": "{param}{levelist}"},
+        )
 
         for t in range(self.lead_time // self.hour_steps):
             for k, fs in enumerate(
@@ -344,11 +363,25 @@ class GraphcastModel(Model):
                     param = self.sfc_names.get(sfc_name, sfc_name)
                     if param in self.task_config.target_variables:
                         self.write(
-                            output.isel(time=t)
-                            .data_vars[param]
-                            .values,
+                            output.isel(time=t).data_vars[param].values,
                             template=fs,
                             step=(t + 1) * self.hour_steps,
                         )
+
+    def patch_retrieve_request(self, r):
+        if r.get("class", "od") != "od":
+            return
+
+        if r.get("type", "an") != "an":
+            return
+
+        if r.get("stream", "oper") != "oper":
+            return
+
+        assert r["time"] in (0, 6, 12, 18)
+
+        if r["time"] in (6, 18):
+            r["stream"] = "scda"
+
 
 model = GraphcastModel
