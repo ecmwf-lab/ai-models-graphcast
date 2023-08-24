@@ -378,10 +378,14 @@ class GraphcastModel(Model):
         if r.get("stream", "oper") != "oper":
             return
 
-        assert r["time"] in (0, 6, 12, 18)
+        time = r.get("time", 12)
 
-        if r["time"] in (6, 18):
-            r["stream"] = "scda"
+        r["stream"] = {
+            0: "oper",
+            6: "scda",
+            12: "oper",
+            18: "scda",
+        }[time]
 
 
 model = GraphcastModel
