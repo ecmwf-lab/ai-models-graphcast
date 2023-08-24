@@ -43,7 +43,7 @@ setuptools.setup(
     include_package_data=True,
     # JAX requirements are in requirements.txt
     install_requires=[
-        "ai-models",
+        # "ai-models",
         # "earthkit-meteo", # For now installed from github until in pipy
         "dm-tree",
     ],

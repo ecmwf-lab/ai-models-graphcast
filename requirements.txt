@@ -2,8 +2,8 @@
 
 # call with pip install -r requirements.txt -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 # also conda install cudatoolkit
-jax==0.4.14
-jaxlib==0.4.14+cuda11.cudnn86
-nvidia-cudnn-cu11==8.9.4.25
-git+https://github.com/deepmind/graphcast.git
-git+https://github.com/ecmwf/earthkit-meteo.git
+# jax==0.4.14
+# jaxlib==0.4.14+cuda11.cudnn86
+# nvidia-cudnn-cu11==8.9.4.25
+# git+https://github.com/deepmind/graphcast.git
+# git+https://github.com/ecmwf/earthkit-meteo.git
