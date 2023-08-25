@@ -1,6 +1,6 @@
-# ai-models-aifs
+# ai-models-graphcast
 
-`ai-models-aifs` is an [ai-models](https://github.com/ecmwf-lab/ai-models) plugin to run ECMWF's AIFS model.
+`ai-models-graphcast` is an [ai-models](https://github.com/ecmwf-lab/ai-models) plugin to run Google Deepmind's [GraphCast](https://github.com/deepmind/graphcast).
 
 ## Jax
 
