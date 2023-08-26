@@ -163,3 +163,5 @@ cython_debug/
 *.out
 *.npz
 *.swp
+?
+?.*

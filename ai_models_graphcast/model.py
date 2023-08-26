@@ -13,12 +13,9 @@ import logging
 import os
 from functools import cached_property
 
-import climetlab as cml
 import haiku as hk
 import jax
-import numpy as np
 import xarray
-import xarray as xr
 from ai_models.model import Model
 from graphcast import (
     autoregressive,
@@ -28,6 +25,9 @@ from graphcast import (
     graphcast,
     normalization,
 )
+
+from .input import create_training_xarray
+from .output import save_output_xarray
 
 LOG = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class GraphcastModel(Model):
         [50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 850, 925, 1000],
     )
 
-    forcings = [
+    forcing_variables = [
         "toa_incident_solar_radiation",  # should be tisr
         "sin_julian_day",
         "cos_julian_day",
@@ -90,7 +90,9 @@ class GraphcastModel(Model):
     # jit cache if you change configs.
     def _with_configs(self, fn):
         return functools.partial(
-            fn, model_config=self.model_config, task_config=self.task_config
+            fn,
+            model_config=self.model_config,
+            task_config=self.task_config,
         )
 
     # Always pass params and state, so the usage below are simpler
@@ -112,9 +114,11 @@ class GraphcastModel(Model):
             diffs_stddev_by_level = xarray.load_dataset(
                 get_path(self.download_files[1])
             ).compute()
+
             mean_by_level = xarray.load_dataset(
                 get_path(self.download_files[2])
             ).compute()
+
             stddev_by_level = xarray.load_dataset(
                 get_path(self.download_files[3])
             ).compute()
@@ -139,17 +143,24 @@ class GraphcastModel(Model):
 
                 # Wraps everything so the one-step model can produce trajectories.
                 predictor = autoregressive.Predictor(
-                    predictor, gradient_checkpointing=True
+                    predictor,
+                    gradient_checkpointing=True,
                 )
                 return predictor
 
             @hk.transform_with_state
             def run_forward(
-                model_config, task_config, inputs, targets_template, forcings
+                model_config,
+                task_config,
+                inputs,
+                targets_template,
+                forcings,
             ):
                 predictor = construct_wrapped_graphcast(model_config, task_config)
                 return predictor(
-                    inputs, targets_template=targets_template, forcings=forcings
+                    inputs,
+                    targets_template=targets_template,
+                    forcings=forcings,
                 )
 
             with open(get_path(self.download_files[0]), "rb") as f:
@@ -163,7 +174,7 @@ class GraphcastModel(Model):
                 LOG.info("Model description: %s", self.ckpt.description)
                 LOG.info("Model license: %s", self.ckpt.license)
 
-            init_jitted = jax.jit(self._with_configs(run_forward.init))
+            jax.jit(self._with_configs(run_forward.init))
             self.model = self._drop_state(
                 self._with_params(jax.jit(self._with_configs(run_forward.apply)))
             )
@@ -172,145 +183,25 @@ class GraphcastModel(Model):
     def start_date(self) -> "datetime":
         return self.all_fields.order_by(valid_datetime="descending")[0].datetime
 
-    def cml_variables(self, date: "datetime") -> "torch.Tensor":
-        """Generate variables from climetlabs
-
-        Args:
-            date (datetime): Datetime of current time step in forecast
-            params (List[str]): Parameters to calculate as constants
-
-        Returns:
-            torch.Tensor: Tensor with constants
-        """
-        ds = cml.load_source(
-            "constants", self.all_fields, date=date, param=self.forcings
-        )
-
-        return (
-            ds.order_by(param=self.forcings, valid_datetime="ascending")
-            .to_numpy()
-            .reshape(len(self.forcings), len(date), 721, 1440)
-        )
-
-    def create_graphcast_inputs(self):
-        # Create Input dataset
-        self.sfc_names = {
-            "t2m": "2m_temperature",
-            "msl": "mean_sea_level_pressure",
-            "u10": "10m_u_component_of_wind",
-            "v10": "10m_v_component_of_wind",
-            "tp": "total_precipitation_6hr",
-            "z": "geopotential_at_surface",
-            "lsm": "land_sea_mask",
-            "latitude": "lat",
-            "longitude": "lon",
-            "step": "batch",
-            "valid_time": "datetime",
-        }
-        self.pl_names = {
-            "t": "temperature",
-            "z": "geopotential",
-            "u": "u_component_of_wind",
-            "v": "v_component_of_wind",
-            "w": "vertical_velocity",
-            "q": "specific_humidity",
-            "isobaricInhPa": "level",
-            "latitude": "lat",
-            "longitude": "lon",
-            "step": "batch",
-            "valid_time": "datetime",
-        }
-        self.sfc_fields = (
-            self.fields_sfc.to_xarray().rename(self.sfc_names).isel(number=0, surface=0)
-        )
-        self.pl_fields = self.fields_pl.to_xarray().rename(self.pl_names).isel(number=0)
-
-        self.sfc_fields.coords["time"] = [
-            datetime.timedelta(hours=hour) for hour in self.lagged
-        ]
-        self.pl_fields.coords["time"] = [
-            datetime.timedelta(hours=hour) for hour in self.lagged
-        ]
-
-    def create_training_xarray(self):
-        # Combine lagged and future timedeltas
-        self.time_deltas = [
-            datetime.timedelta(hours=h)
-            for h in self.lagged
-            + [
-                hour
-                for hour in range(
-                    self.hour_steps, self.lead_time + self.hour_steps, self.hour_steps
-                )
-            ]
-        ]
-        datetimes = [self.start_date() + time_delta for time_delta in self.time_deltas]
-        forcings_numpy = self.cml_variables(datetimes)
-        # Create an empty training dataset that has all the variables from sfc_fields
-        # and pl_fields but nans over the dimensions
-        # batch, time, lat, lon, level
-        # This is so we can merge the forcings dataset with the training dataset
-        # and then drop the batch dimension
-        empty_dataset = xr.Dataset(
-            {
-                "toa_incident_solar_radiation": (
-                    ["batch", "time", "lat", "lon"],
-                    forcings_numpy[0:1, :, :, :],
-                ),
-                "year_progress_sin": (["batch", "time"], forcings_numpy[1:2, :, 0, 0]),
-                "year_progress_cos": (["batch", "time"], forcings_numpy[2:3, :, 0, 0]),
-                "day_progress_sin": (
-                    ["batch", "time", "lon"],
-                    forcings_numpy[3:4, :, 0, :],
-                ),
-                "day_progress_cos": (
-                    ["batch", "time", "lon"],
-                    forcings_numpy[4:5, :, 0, :],
-                ),
-                "geopotential_at_surface": (
-                    ["lat", "lon"],
-                    np.squeeze(
-                        self.sfc_fields["geopotential_at_surface"].values[0, 0, :, :]
-                    ),
-                ),
-                "land_sea_mask": (
-                    ["lat", "lon"],
-                    np.squeeze(self.sfc_fields["land_sea_mask"].values[0, 0, :, :]),
-                ),
-            },
-            coords={
-                "batch": self.sfc_fields.coords["batch"],
-                "time": self.time_deltas,
-                "lat": self.sfc_fields.coords["lat"],
-                "lon": self.sfc_fields.coords["lon"],
-                "level": self.pl_fields.coords["level"],
-            },
-        )
-        self.sfc_fields = self.sfc_fields.drop_vars(
-            ["geopotential_at_surface", "land_sea_mask"]
-        )
-
-        # Create a training dataset with all the variables from sfc_fields and pl_fields
-        # and the forcings dataset
-        # and then drop the batch dimension
-        self.training_xarray = (
-            empty_dataset.combine_first(self.sfc_fields)
-            .combine_first(self.pl_fields)
-            .drop_vars(["batch"])
-        )
-
     def run(self):
         with self.timer("Building model"):
             self.load_model()
         # all_fields = self.all_fields.to_xarray()
 
-        with self.timer("Creating data"):
-            self.create_graphcast_inputs()
-            self.create_training_xarray()
+        with self.timer("Creating input data"):
+            training_xarray, time_deltas = create_training_xarray(
+                fields_sfc=self.fields_sfc,
+                fields_pl=self.fields_pl,
+                lagged=self.lagged,
+                start_date=self.start_date,
+                hour_steps=self.hour_steps,
+                lead_time=self.lead_time,
+                forcing_variables=self.forcing_variables,
+            )
 
             input_xr, template, forcings = data_utils.extract_inputs_targets_forcings(
-                self.training_xarray,
-                target_lead_times=self.time_deltas[len(self.lagged) :],
+                training_xarray,
+                target_lead_times=time_deltas[len(self.lagged) :],
                 **dataclasses.asdict(self.task_config),
             )
 
@@ -322,51 +213,17 @@ class GraphcastModel(Model):
                 forcings=forcings,
             )
 
-        # Write data to target location
-        translate_dict = {
-            "2t": "t2m",
-            "10u": "u10",
-            "10v": "v10",
-        }
-
-        self.task_config.target_variables
-
-        output["total_precipitation_6hr"] = output.data_vars[
-            "total_precipitation_6hr"
-        ].cumsum(dim="time")
-
-        self.all_fields = self.all_fields.order_by(
-            valid_datetime="descending",
-            param_level=self.ordering,
-            remapping={"param_level": "{param}{levelist}"},
-        )
-
-        for t in range(self.lead_time // self.hour_steps):
-            for k, fs in enumerate(
-                self.all_fields[: len(self.all_fields) // len(self.lagged)]
-            ):
-                name = fs["shortName"]
-                level = fs["level"]
-                if level != 0:
-                    param = self.pl_names.get(name, name)
-                    if param in self.task_config.target_variables:
-                        self.write(
-                            output.isel(time=t)
-                            .sel(level=level)
-                            .data_vars[param]
-                            .values,
-                            template=fs,
-                            step=(t + 1) * self.hour_steps,
-                        )
-                else:
-                    sfc_name = translate_dict.get(name, name)
-                    param = self.sfc_names.get(sfc_name, sfc_name)
-                    if param in self.task_config.target_variables:
-                        self.write(
-                            output.isel(time=t).data_vars[param].values,
-                            template=fs,
-                            step=(t + 1) * self.hour_steps,
-                        )
+        with self.timer("Saving output data"):
+            save_output_xarray(
+                output=output,
+                write=self.write,
+                target_variables=self.task_config.target_variables,
+                all_fields=self.all_fields,
+                ordering=self.ordering,
+                lead_time=self.lead_time,
+                hour_steps=self.hour_steps,
+                lagged=self.lagged,
+            )
 
     def patch_retrieve_request(self, r):
         if r.get("class", "od") != "od":
