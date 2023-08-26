@@ -47,8 +47,6 @@ def save_output_xarray(
                         template=fs,
                         step=(time + 1) * hour_steps,
                     )
-                else:
-                    LOG.warn(f"Skipping {name} as not in target variables")
             else:
                 sfc_name = GRIB_TO_CF.get(name, name)
                 param = GRIB_TO_XARRAY_SFC.get(sfc_name, sfc_name)
@@ -58,5 +56,3 @@ def save_output_xarray(
                         template=fs,
                         step=(time + 1) * hour_steps,
                     )
-                else:
-                    LOG.warn(f"Skipping {name} as not in target variables")
