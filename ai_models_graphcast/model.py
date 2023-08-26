@@ -199,11 +199,17 @@ class GraphcastModel(Model):
                 forcing_variables=self.forcing_variables,
             )
 
+            if self.debug:
+                training_xarray.to_netcdf("training_xarray.nc")
+
             input_xr, template, forcings = data_utils.extract_inputs_targets_forcings(
                 training_xarray,
                 target_lead_times=time_deltas[len(self.lagged) :],
                 **dataclasses.asdict(self.task_config),
             )
+
+            if self.debug:
+                input_xr.to_netcdf("input_xr.nc")
 
         with self.timer("Doing full rollout prediction in JAX"):
             output = self.model(
@@ -212,6 +218,9 @@ class GraphcastModel(Model):
                 targets_template=template,
                 forcings=forcings,
             )
+
+            if self.debug:
+                output.to_netcdf("output.nc")
 
         with self.timer("Saving output data"):
             save_output_xarray(

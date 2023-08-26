@@ -32,3 +32,10 @@ GRIB_TO_XARRAY_PL = {
     "step": "batch",
     "valid_time": "datetime",
 }
+
+
+GRIB_TO_CF = {
+    "2t": "t2m",
+    "10u": "u10",
+    "10v": "v10",
+}

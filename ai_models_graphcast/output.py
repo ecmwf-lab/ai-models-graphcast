@@ -7,7 +7,7 @@
 
 import logging
 
-from .convert import GRIB_TO_XARRAY_PL, GRIB_TO_XARRAY_SFC
+from .convert import GRIB_TO_CF, GRIB_TO_XARRAY_PL, GRIB_TO_XARRAY_SFC
 
 LOG = logging.getLogger(__name__)
 
@@ -25,15 +25,6 @@ def save_output_xarray(
 ):
     LOG.info("Converting output xarray to GRIB and saving")
 
-    # Write data to target location
-    translate_dict = {
-        "2t": "t2m",
-        "10u": "u10",
-        "10v": "v10",
-    }
-
-    target_variables
-
     output["total_precipitation_6hr"] = output.data_vars[
         "total_precipitation_6hr"
     ].cumsum(dim="time")
@@ -47,6 +38,7 @@ def save_output_xarray(
     for time in range(lead_time // hour_steps):
         for fs in all_fields[: len(all_fields) // len(lagged)]:
             name, level = fs["shortName"], fs["level"]
+
             if level != 0:
                 param = GRIB_TO_XARRAY_PL.get(name, name)
                 if param in target_variables:
@@ -58,7 +50,7 @@ def save_output_xarray(
                 else:
                     LOG.warn(f"Skipping {name} as not in target variables")
             else:
-                sfc_name = translate_dict.get(name, name)
+                sfc_name = GRIB_TO_CF.get(name, name)
                 param = GRIB_TO_XARRAY_SFC.get(sfc_name, sfc_name)
                 if param in target_variables:
                     write(
