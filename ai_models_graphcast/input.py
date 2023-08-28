@@ -152,4 +152,7 @@ def create_training_xarray(
     # And we want the grid south to north
     training_xarray = training_xarray.reindex(lat=sorted(training_xarray.lat.values))
 
+    # Shift times to timedelta 0
+    training_xarray["time"] = [time_delta - time_deltas[0] for time_delta in time_deltas]
+
     return training_xarray, time_deltas

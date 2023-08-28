@@ -206,10 +206,10 @@ class GraphcastModel(Model):
 
             input_xr, template, forcings = data_utils.extract_inputs_targets_forcings(
                 training_xarray,
-                target_lead_times=time_deltas[len(self.lagged) :],
+                target_lead_times=[f"{int(delta.days * 24 + delta.seconds/3600):d}h" for delta in time_deltas[len(self.lagged) :]],
                 **dataclasses.asdict(self.task_config),
             )
-
+            
             if self.debug:
                 input_xr.to_netcdf("input_xr.nc")
 
