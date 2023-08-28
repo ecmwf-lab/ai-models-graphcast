@@ -64,6 +64,7 @@ def create_training_xarray(
     sfc_fields_xarray.coords["time"] = [
         datetime.timedelta(hours=hour) for hour in lagged
     ]
+
     pl_fields_xarray.coords["time"] = [
         datetime.timedelta(hours=hour) for hour in lagged
     ]
@@ -131,5 +132,24 @@ def create_training_xarray(
         .combine_first(pl_fields_xarray)
         .drop_vars(["batch"])
     )
+
+    # Ensure we have the right order
+    training_xarray = training_xarray.transpose(
+        "batch",
+        "time",
+        "level",
+        "lat",
+        "lon",
+    )
+
+    # cfgrib sorts the pressure levels in descending order
+    # we want them in ascending order
+
+    training_xarray = training_xarray.reindex(
+        level=sorted(training_xarray.level.values)
+    )
+
+    # And we want the grid south to north
+    training_xarray = training_xarray.reindex(lat=sorted(training_xarray.lat.values))
 
     return training_xarray, time_deltas

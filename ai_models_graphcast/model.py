@@ -74,6 +74,8 @@ class GraphcastModel(Model):
         "cos_local_time",
     ]
 
+    use_fc = False
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.hour_steps = 6
@@ -238,11 +240,14 @@ class GraphcastModel(Model):
         if r.get("class", "od") != "od":
             return
 
-        if r.get("type", "an") != "an":
+        if r.get("type", "an") not in ("an", "fc"):
             return
 
-        if r.get("stream", "oper") != "oper":
+        if r.get("stream", "oper") not in ("oper", "scda"):
             return
+
+        if self.use_fc:
+            r["type"] = "fc"
 
         time = r.get("time", 12)
 
@@ -252,6 +257,13 @@ class GraphcastModel(Model):
             12: "oper",
             18: "scda",
         }[time]
+
+    def parse_model_args(self, args):
+        import argparse
+
+        parser = argparse.ArgumentParser("ai-models graphcast")
+        parser.add_argument("--use-fc", action="store_true")
+        return parser.parse_args(args)
 
 
 model = GraphcastModel
