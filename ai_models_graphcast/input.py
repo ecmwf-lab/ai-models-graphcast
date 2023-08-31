@@ -88,16 +88,6 @@ def create_training_xarray(
                 ["batch", "time", "lat", "lon"],
                 forcing_numpy[0:1, :, :, :],
             ),
-            "year_progress_sin": (["batch", "time"], forcing_numpy[1:2, :, 0, 0]),
-            "year_progress_cos": (["batch", "time"], forcing_numpy[2:3, :, 0, 0]),
-            "day_progress_sin": (
-                ["batch", "time", "lon"],
-                forcing_numpy[3:4, :, 0, :],
-            ),
-            "day_progress_cos": (
-                ["batch", "time", "lon"],
-                forcing_numpy[4:5, :, 0, :],
-            ),
             "geopotential_at_surface": (
                 ["lat", "lon"],
                 np.squeeze(

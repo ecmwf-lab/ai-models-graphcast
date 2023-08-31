@@ -67,11 +67,9 @@ class GraphcastModel(Model):
     )
 
     forcing_variables = [
-        "toa_incident_solar_radiation",  # should be tisr
-        "sin_julian_day",
-        "cos_julian_day",
-        "sin_local_time",
-        "cos_local_time",
+        "toa_incident_solar_radiation",
+        # Not calling julian day and day here, due to differing assumptions with Deepmind
+        # Those forcings are created by graphcast.data_utils
     ]
 
     use_fc = False
@@ -212,6 +210,7 @@ class GraphcastModel(Model):
             
             if self.debug:
                 input_xr.to_netcdf("input_xr.nc")
+                forcings.to_netcdf("forcings_xr.nc")
 
         with self.timer("Doing full rollout prediction in JAX"):
             output = self.model(
