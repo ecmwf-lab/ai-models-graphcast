@@ -99,8 +99,8 @@ class GraphcastModel(Model):
     def _with_params(self, fn):
         return functools.partial(fn, params=self.params, state=self.state)
 
-    # Our models aren't stateful, so the state is always empty, so just return the
-    # predictions. This is requiredy by our rollout code, and generally simpler.
+    # Deepmind models aren't stateful, so the state is always empty, so just return the
+    # predictions. This is requiredy by the rollout code, and generally simpler.
     @staticmethod
     def _drop_state(fn):
         return lambda **kw: fn(**kw)[0]
