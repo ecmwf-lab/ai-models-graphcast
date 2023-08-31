@@ -148,6 +148,9 @@ def create_training_xarray(
         time_delta - time_deltas[0] for time_delta in time_deltas
     ]
 
+    # Add datetimes as coordinates
+    training_xarray.coords["datetime"] = datetimes
+
     if constants:
         # Add geopotential_at_surface and land_sea_mask back in
         x = xr.load_dataset(constants)
