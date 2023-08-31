@@ -197,6 +197,7 @@ class GraphcastModel(Model):
                 hour_steps=self.hour_steps,
                 lead_time=self.lead_time,
                 forcing_variables=self.forcing_variables,
+                constants=self.override_constants,
             )
 
             if self.debug:
@@ -204,10 +205,13 @@ class GraphcastModel(Model):
 
             input_xr, template, forcings = data_utils.extract_inputs_targets_forcings(
                 training_xarray,
-                target_lead_times=[f"{int(delta.days * 24 + delta.seconds/3600):d}h" for delta in time_deltas[len(self.lagged) :]],
+                target_lead_times=[
+                    f"{int(delta.days * 24 + delta.seconds/3600):d}h"
+                    for delta in time_deltas[len(self.lagged) :]
+                ],
                 **dataclasses.asdict(self.task_config),
             )
-            
+
             if self.debug:
                 input_xr.to_netcdf("input_xr.nc")
                 forcings.to_netcdf("forcings_xr.nc")
@@ -262,6 +266,7 @@ class GraphcastModel(Model):
 
         parser = argparse.ArgumentParser("ai-models graphcast")
         parser.add_argument("--use-fc", action="store_true")
+        parser.add_argument("--override-constants")
         return parser.parse_args(args)
 
 

@@ -51,6 +51,7 @@ def create_training_xarray(
     hour_steps,
     lead_time,
     forcing_variables,
+    constants,
 ):
     LOG.info("Creating training dataset")
     # Create Input dataset
@@ -142,7 +143,17 @@ def create_training_xarray(
     # And we want the grid south to north
     training_xarray = training_xarray.reindex(lat=sorted(training_xarray.lat.values))
 
-    # Shift times to timedelta 0
-    training_xarray["time"] = [time_delta - time_deltas[0] for time_delta in time_deltas]
+    # # Shift times to timedelta 0
+    training_xarray["time"] = [
+        time_delta - time_deltas[0] for time_delta in time_deltas
+    ]
+
+    if constants:
+        # Add geopotential_at_surface and land_sea_mask back in
+        x = xr.load_dataset(constants)
+
+        for patch in ("geopotential_at_surface", "land_sea_mask"):
+            LOG.info("PATCHING %s", patch)
+            training_xarray[patch] = x[patch]
 
     return training_xarray, time_deltas
