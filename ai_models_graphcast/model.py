@@ -72,7 +72,7 @@ class GraphcastModel(Model):
         # Those forcings are created by graphcast.data_utils
     ]
 
-    use_fc = False
+    use_an = False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -249,7 +249,9 @@ class GraphcastModel(Model):
         if r.get("stream", "oper") not in ("oper", "scda"):
             return
 
-        if self.use_fc:
+        if self.use_an:
+            r["type"] = "an"
+        else:
             r["type"] = "fc"
 
         time = r.get("time", 12)
@@ -265,7 +267,7 @@ class GraphcastModel(Model):
         import argparse
 
         parser = argparse.ArgumentParser("ai-models graphcast")
-        parser.add_argument("--use-fc", action="store_true")
+        parser.add_argument("--use-an", action="store_true")
         parser.add_argument("--override-constants")
         return parser.parse_args(args)
 
