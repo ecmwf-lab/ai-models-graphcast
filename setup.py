@@ -43,8 +43,9 @@ setuptools.setup(
     include_package_data=True,
     # JAX requirements are in requirements.txt
     install_requires=[
-        # "ai-models",
-        # "earthkit-meteo", # For now installed from github until in pipy
+        "ai-models>=0.2.3",
+        "earthkit-meteo @ git+https://github.com/ecmwf/earthkit-meteo.git@48deab9#egg=earthkit-meteo",
+        "graphcast @ git+https://github.com/deepmind/graphcast.git@e622a15#egg=graphcast",
         "dm-tree",
     ],
     zip_safe=True,
