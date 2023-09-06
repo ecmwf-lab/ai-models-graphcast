@@ -149,7 +149,7 @@ def create_training_xarray(
     ]
 
     # Add datetimes as coordinates
-    training_xarray.coords["datetime"].data[0,:] = datetimes
+    training_xarray.coords["datetime"].data[0, :] = datetimes
 
     if constants:
         # Add geopotential_at_surface and land_sea_mask back in
