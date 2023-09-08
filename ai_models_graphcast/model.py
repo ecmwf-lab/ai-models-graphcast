@@ -13,24 +13,30 @@ import logging
 import os
 from functools import cached_property
 
-import haiku as hk
-import jax
 import xarray
 from ai_models.model import Model
-from graphcast import (
-    autoregressive,
-    casting,
-    checkpoint,
-    data_utils,
-    graphcast,
-    normalization,
-)
 
 from .input import create_training_xarray
 from .output import save_output_xarray
 
 LOG = logging.getLogger(__name__)
 
+
+try:
+    import haiku as hk
+    import jax
+    from graphcast import (
+        autoregressive,
+        casting,
+        checkpoint,
+        data_utils,
+        graphcast,
+        normalization,
+    )
+except ModuleNotFoundError  as e:
+    msg = "You need to install Graphcast from git to use this model. See README.md for details."
+    LOG.error(msg)
+    raise ModuleNotFoundError (e + msg)
 
 class GraphcastModel(Model):
     download_url = "https://storage.googleapis.com/dm_graphcast/{file}"

@@ -44,8 +44,7 @@ setuptools.setup(
     # JAX requirements are in requirements.txt
     install_requires=[
         "ai-models>=0.2.3",
-        "earthkit-meteo @ git+https://github.com/ecmwf/earthkit-meteo.git@48deab9#egg=earthkit-meteo",
-        "graphcast @ git+https://github.com/deepmind/graphcast.git@e622a15#egg=graphcast",
+        "earthkit-meteo",
         "dm-tree",
     ],
     zip_safe=True,
@@ -60,7 +59,6 @@ setuptools.setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: Implementation :: CPython",
