@@ -15,7 +15,7 @@ GRIB_TO_XARRAY_SFC = {
     "lsm": "land_sea_mask",
     "latitude": "lat",
     "longitude": "lon",
-    "step": "batch",
+    # "step": "batch",
     "valid_time": "datetime",
 }
 
@@ -29,7 +29,7 @@ GRIB_TO_XARRAY_PL = {
     "isobaricInhPa": "level",
     "latitude": "lat",
     "longitude": "lon",
-    "step": "batch",
+    # "step": "batch",
     "valid_time": "datetime",
 }
 
