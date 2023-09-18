@@ -195,35 +195,40 @@ class GraphcastModel(Model):
             self.load_model()
         # all_fields = self.all_fields.to_xarray()
 
-        with self.timer("Creating input data"):
-            training_xarray, time_deltas = create_training_xarray(
-                fields_sfc=self.fields_sfc,
-                fields_pl=self.fields_pl,
-                lagged=self.lagged,
-                start_date=self.start_date,
-                hour_steps=self.hour_steps,
-                lead_time=self.lead_time,
-                forcing_variables=self.forcing_variables,
-                constants=self.override_constants,
-                timer=self.timer,
-            )
+        with self.timer("Creating input data (total)"):
+            with self.timer("Creating training data"):
+                training_xarray, time_deltas = create_training_xarray(
+                    fields_sfc=self.fields_sfc,
+                    fields_pl=self.fields_pl,
+                    lagged=self.lagged,
+                    start_date=self.start_date,
+                    hour_steps=self.hour_steps,
+                    lead_time=self.lead_time,
+                    forcing_variables=self.forcing_variables,
+                    constants=self.override_constants,
+                    timer=self.timer,
+                )
 
-        if self.debug:
-            training_xarray.to_netcdf("training_xarray.nc")
+            if self.debug:
+                training_xarray.to_netcdf("training_xarray.nc")
 
-        with self.timer("Extracting input targets"):
-            input_xr, template, forcings = data_utils.extract_inputs_targets_forcings(
-                training_xarray,
-                target_lead_times=[
-                    f"{int(delta.days * 24 + delta.seconds/3600):d}h"
-                    for delta in time_deltas[len(self.lagged) :]
-                ],
-                **dataclasses.asdict(self.task_config),
-            )
+            with self.timer("Extracting input targets"):
+                (
+                    input_xr,
+                    template,
+                    forcings,
+                ) = data_utils.extract_inputs_targets_forcings(
+                    training_xarray,
+                    target_lead_times=[
+                        f"{int(delta.days * 24 + delta.seconds/3600):d}h"
+                        for delta in time_deltas[len(self.lagged) :]
+                    ],
+                    **dataclasses.asdict(self.task_config),
+                )
 
-        if self.debug:
-            input_xr.to_netcdf("input_xr.nc")
-            forcings.to_netcdf("forcings_xr.nc")
+            if self.debug:
+                input_xr.to_netcdf("input_xr.nc")
+                forcings.to_netcdf("forcings_xr.nc")
 
         with self.timer("Doing full rollout prediction in JAX"):
             output = self.model(

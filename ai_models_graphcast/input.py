@@ -74,8 +74,6 @@ def create_training_xarray(
     constants,
     timer,
 ):
-    LOG.info("Creating training dataset")
-
     time_deltas = [
         datetime.timedelta(hours=h)
         for h in lagged
@@ -99,17 +97,19 @@ def create_training_xarray(
 
         fields_sfc = fields_sfc.order_by("param", "valid_datetime")
         sfc = defaultdict(list)
-        datetimes = set()
+        given_datetimes = set()
         for field in fields_sfc:
-            datetimes.add(field.metadata("valid_datetime"))
+            given_datetimes.add(field.metadata("valid_datetime"))
             sfc[field.metadata("param")].append(field)
 
-        fields_pl = fields_pl.order_by("param", "level", "valid_datetime")
+        # PRESSURE LEVEL FIELDS
+
+        fields_pl = fields_pl.order_by("param", "valid_datetime", "level")
         pl = defaultdict(list)
         levels = set()
-        datetimes = set()
+        given_datetimes = set()
         for field in fields_pl:
-            datetimes.add(field.metadata("valid_datetime"))
+            given_datetimes.add(field.metadata("valid_datetime"))
             pl[field.metadata("param")].append(field)
             levels.add(field.metadata("level"))
 
@@ -122,7 +122,7 @@ def create_training_xarray(
 
             data = np.stack([field.to_numpy() for field in fields]).reshape(
                 1,
-                len(datetimes),
+                len(given_datetimes),
                 len(lat),
                 len(lon),
             )
@@ -131,7 +131,7 @@ def create_training_xarray(
                 data,
                 (
                     (0, 0),
-                    (0, len(all_datetimes) - len(datetimes)),
+                    (0, len(all_datetimes) - len(given_datetimes)),
                     (0, 0),
                     (0, 0),
                 ),
@@ -143,7 +143,7 @@ def create_training_xarray(
         for param, fields in pl.items():
             data = np.stack([field.to_numpy() for field in fields]).reshape(
                 1,
-                len(datetimes),
+                len(given_datetimes),
                 len(levels),
                 len(lat),
                 len(lon),
@@ -152,7 +152,7 @@ def create_training_xarray(
                 data,
                 (
                     (0, 0),
-                    (0, len(all_datetimes) - len(datetimes)),
+                    (0, len(all_datetimes) - len(given_datetimes)),
                     (0, 0),
                     (0, 0),
                     (0, 0),
@@ -170,7 +170,7 @@ def create_training_xarray(
             forcing_numpy[0:1, :, :, :],
         )
 
-        ds = xr.Dataset(
+        training_xarray = xr.Dataset(
             data_vars=data_vars,
             coords=dict(
                 lon=lon,
@@ -184,20 +184,11 @@ def create_training_xarray(
             ),
         )
 
-        # print(ds)
-
-    # training_xarray = ds
-
-    # cfgrib sorts the pressure levels in descending order
-    # we want them in ascending order
-
-    # training_xarray = training_xarray.reindex(
-    #     level=sorted(training_xarray.level.values)
-    # )
-
     with timer("Reindexing"):
-    # And we want the grid south to north
-        training_xarray = training_xarray.reindex(lat=sorted(training_xarray.lat.values))
+        # And we want the grid south to north
+        training_xarray = training_xarray.reindex(
+            lat=sorted(training_xarray.lat.values)
+        )
 
     if constants:
         # Add geopotential_at_surface and land_sea_mask back in
