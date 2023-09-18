@@ -57,7 +57,7 @@ def forcing_variables_numpy(sample, forcing_variables, dates):
 
     return (
         ds.order_by(param=forcing_variables, valid_datetime="ascending")
-        .to_numpy()
+        .to_numpy(dtype=np.float32)
         .reshape(len(forcing_variables), len(dates), 721, 1440)
     )
 
@@ -120,7 +120,9 @@ def create_training_xarray(
                 data_vars[CF_NAME_SFC[param]] = (["lat", "lon"], fields[0].to_numpy())
                 continue
 
-            data = np.stack([field.to_numpy() for field in fields]).reshape(
+            data = np.stack(
+                [field.to_numpy(dtype=np.float32) for field in fields]
+            ).reshape(
                 1,
                 len(given_datetimes),
                 len(lat),
@@ -141,7 +143,9 @@ def create_training_xarray(
             data_vars[CF_NAME_SFC[param]] = (["batch", "time", "lat", "lon"], data)
 
         for param, fields in pl.items():
-            data = np.stack([field.to_numpy() for field in fields]).reshape(
+            data = np.stack(
+                [field.to_numpy(dtype=np.float32) for field in fields]
+            ).reshape(
                 1,
                 len(given_datetimes),
                 len(levels),

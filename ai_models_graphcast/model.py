@@ -10,7 +10,7 @@ import dataclasses
 import datetime
 import functools
 import logging
-import os
+import os, gc
 from functools import cached_property
 
 import xarray
@@ -208,6 +208,8 @@ class GraphcastModel(Model):
                     constants=self.override_constants,
                     timer=self.timer,
                 )
+
+            gc.collect()
 
             if self.debug:
                 training_xarray.to_netcdf("training_xarray.nc")
