@@ -2,6 +2,7 @@
 
 `ai-models-graphcast` is an [ai-models](https://github.com/ecmwf-lab/ai-models) plugin to run Google Deepmind's [GraphCast](https://github.com/deepmind/graphcast).
 
+The commercial use of these models is forbidden.
 
 ## Installation
 

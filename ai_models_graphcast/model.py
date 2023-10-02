@@ -9,8 +9,9 @@
 import dataclasses
 import datetime
 import functools
+import gc
 import logging
-import os, gc
+import os
 from functools import cached_property
 
 import xarray

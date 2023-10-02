@@ -14,8 +14,6 @@ import climetlab as cml
 import numpy as np
 import xarray as xr
 
-from .convert import GRIB_TO_XARRAY_PL, GRIB_TO_XARRAY_SFC
-
 LOG = logging.getLogger(__name__)
 
 CF_NAME_SFC = {
