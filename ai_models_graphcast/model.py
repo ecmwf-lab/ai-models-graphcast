@@ -189,7 +189,8 @@ class GraphcastModel(Model):
 
     @cached_property
     def start_date(self) -> "datetime":
-        return self.all_fields.order_by(valid_datetime="descending")[0].datetime
+        v = self.all_fields.order_by(valid_datetime="descending")[0].datetime()["base_time"]
+        return lambda: v
 
     def run(self):
         with self.timer("Building model"):

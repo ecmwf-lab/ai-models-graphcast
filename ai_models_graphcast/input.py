@@ -46,7 +46,7 @@ def forcing_variables_numpy(sample, forcing_variables, dates):
     Returns:
         torch.Tensor: Tensor with constants
     """
-    ds = ekd.load_source(
+    ds = ekd.from_source(
         "constants",
         sample,
         date=dates,
