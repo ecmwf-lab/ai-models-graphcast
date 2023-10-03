@@ -10,7 +10,7 @@ import datetime
 import logging
 from collections import defaultdict
 
-import climetlab as cml
+import earthkit.data as ekd
 import numpy as np
 import xarray as xr
 
@@ -46,7 +46,7 @@ def forcing_variables_numpy(sample, forcing_variables, dates):
     Returns:
         torch.Tensor: Tensor with constants
     """
-    ds = cml.load_source(
+    ds = ekd.load_source(
         "constants",
         sample,
         date=dates,
