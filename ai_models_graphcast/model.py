@@ -37,7 +37,7 @@ try:
 except ModuleNotFoundError as e:
     msg = "You need to install Graphcast from git to use this model. See README.md for details."
     LOG.error(msg)
-    raise ModuleNotFoundError(e + msg)
+    raise ModuleNotFoundError(f"{msg}\n{e}")
 
 
 class GraphcastModel(Model):
