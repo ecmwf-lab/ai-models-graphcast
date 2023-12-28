@@ -57,8 +57,16 @@ def save_output_xarray(
 
             values = np.flipud(values.reshape(fs.shape))
 
-            write(
-                values,
-                template=fs,
-                step=(time + 1) * hour_steps,
-            )
+            if param == "total_precipitation_6hr":
+                write(
+                    values,
+                    template=fs,
+                    startStep=0,
+                    endStep=(time + 1) * hour_steps,
+                )
+            else:
+                write(
+                    values,
+                    template=fs,
+                    step=(time + 1) * hour_steps,
+                )
