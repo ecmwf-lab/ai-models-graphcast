@@ -192,9 +192,12 @@ class GraphcastModel(Model):
         return self.all_fields.order_by(valid_datetime="descending")[0].datetime
 
     def run(self):
+        # We ignore 'tp' so that we make sure that step 0 is a field of zero values
+        self.write_input_fields(self.fields_sfc, ignore=["tp"], accumulations=["tp"])
+        self.write_input_fields(self.fields_pl)
+
         with self.timer("Building model"):
             self.load_model()
-        # all_fields = self.all_fields.to_xarray()
 
         with self.timer("Creating input data (total)"):
             with self.timer("Creating training data"):
