@@ -43,7 +43,7 @@ setuptools.setup(
     include_package_data=True,
     # JAX requirements are in requirements.txt
     install_requires=[
-        "ai-models>=0.3.6",
+        "ai-models>=0.4.0",
         "dm-tree",
         "dm-haiku==0.0.10",
     ],
