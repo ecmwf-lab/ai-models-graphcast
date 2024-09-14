@@ -9,7 +9,9 @@ import logging
 
 import numpy as np
 
-from .convert import GRIB_TO_CF, GRIB_TO_XARRAY_PL, GRIB_TO_XARRAY_SFC
+from .convert import GRIB_TO_CF
+from .convert import GRIB_TO_XARRAY_PL
+from .convert import GRIB_TO_XARRAY_SFC
 
 LOG = logging.getLogger(__name__)
 
@@ -27,9 +29,7 @@ def save_output_xarray(
 ):
     LOG.info("Converting output xarray to GRIB and saving")
 
-    output["total_precipitation_6hr"] = output.data_vars[
-        "total_precipitation_6hr"
-    ].cumsum(dim="time")
+    output["total_precipitation_6hr"] = output.data_vars["total_precipitation_6hr"].cumsum(dim="time")
 
     all_fields = all_fields.order_by(
         valid_datetime="descending",
@@ -39,7 +39,7 @@ def save_output_xarray(
 
     for time in range(lead_time // hour_steps):
         for fs in all_fields[: len(all_fields) // len(lagged)]:
-            param, level = fs["shortName"], fs["level"]
+            param, level = fs.metadata("shortName"), fs.metadata("levelist")
 
             if level != 0:
                 param = GRIB_TO_XARRAY_PL.get(param, param)

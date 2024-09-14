@@ -7,12 +7,10 @@
 
 
 import dataclasses
-import datetime
 import functools
 import gc
 import logging
 import os
-from functools import cached_property
 
 import xarray
 from ai_models.model import Model
@@ -26,14 +24,12 @@ LOG = logging.getLogger(__name__)
 try:
     import haiku as hk
     import jax
-    from graphcast import (
-        autoregressive,
-        casting,
-        checkpoint,
-        data_utils,
-        graphcast,
-        normalization,
-    )
+    from graphcast import autoregressive
+    from graphcast import casting
+    from graphcast import checkpoint
+    from graphcast import data_utils
+    from graphcast import graphcast
+    from graphcast import normalization
 except ModuleNotFoundError as e:
     msg = "You need to install Graphcast from git to use this model. See README.md for details."
     LOG.error(msg)
@@ -88,9 +84,7 @@ class GraphcastModel(Model):
         self.lagged = [-6, 0]
         self.params = None
         self.ordering = self.param_sfc + [
-            f"{param}{level}"
-            for param in self.param_level_pl[0]
-            for level in self.param_level_pl[1]
+            f"{param}{level}" for param in self.param_level_pl[0] for level in self.param_level_pl[1]
         ]
 
     # Jax doesn't seem to like passing configs as args through the jit. Passing it
@@ -119,17 +113,11 @@ class GraphcastModel(Model):
             def get_path(filename):
                 return os.path.join(self.assets, filename)
 
-            diffs_stddev_by_level = xarray.load_dataset(
-                get_path(self.download_files[1])
-            ).compute()
+            diffs_stddev_by_level = xarray.load_dataset(get_path(self.download_files[1])).compute()
 
-            mean_by_level = xarray.load_dataset(
-                get_path(self.download_files[2])
-            ).compute()
+            mean_by_level = xarray.load_dataset(get_path(self.download_files[2])).compute()
 
-            stddev_by_level = xarray.load_dataset(
-                get_path(self.download_files[3])
-            ).compute()
+            stddev_by_level = xarray.load_dataset(get_path(self.download_files[3])).compute()
 
             def construct_wrapped_graphcast(model_config, task_config):
                 """Constructs and wraps the GraphCast Predictor."""
@@ -183,13 +171,7 @@ class GraphcastModel(Model):
                 LOG.info("Model license: %s", self.ckpt.license)
 
             jax.jit(self._with_configs(run_forward.init))
-            self.model = self._drop_state(
-                self._with_params(jax.jit(self._with_configs(run_forward.apply)))
-            )
-
-    @cached_property
-    def start_date(self) -> "datetime":
-        return self.all_fields.order_by(valid_datetime="descending")[0].datetime
+            self.model = self._drop_state(self._with_params(jax.jit(self._with_configs(run_forward.apply))))
 
     def run(self):
         # We ignore 'tp' so that we make sure that step 0 is a field of zero values
@@ -205,7 +187,7 @@ class GraphcastModel(Model):
                     fields_sfc=self.fields_sfc,
                     fields_pl=self.fields_pl,
                     lagged=self.lagged,
-                    start_date=self.start_date,
+                    start_date=self.start_datetime,
                     hour_steps=self.hour_steps,
                     lead_time=self.lead_time,
                     forcing_variables=self.forcing_variables,
@@ -226,8 +208,7 @@ class GraphcastModel(Model):
                 ) = data_utils.extract_inputs_targets_forcings(
                     training_xarray,
                     target_lead_times=[
-                        f"{int(delta.days * 24 + delta.seconds/3600):d}h"
-                        for delta in time_deltas[len(self.lagged) :]
+                        f"{int(delta.days * 24 + delta.seconds/3600):d}h" for delta in time_deltas[len(self.lagged) :]
                     ],
                     **dataclasses.asdict(self.task_config),
                 )
