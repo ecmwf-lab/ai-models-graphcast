@@ -37,7 +37,7 @@ CF_NAME_PL = {
 
 
 def forcing_variables_numpy(sample, forcing_variables, dates):
-    """Generate variables from climetlabs
+    """Generate variables from earthkit-data
 
     Args:
         date (datetime): Datetime of current time step in forecast

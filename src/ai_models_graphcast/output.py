@@ -39,7 +39,7 @@ def save_output_xarray(
 
     for time in range(lead_time // hour_steps):
         for fs in all_fields[: len(all_fields) // len(lagged)]:
-            param, level = fs.metadata("shortName"), fs.metadata("levelist")
+            param, level = fs.metadata("shortName"), fs.metadata("levelist", default=0)
 
             if level != 0:
                 param = GRIB_TO_XARRAY_PL.get(param, param)
