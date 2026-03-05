@@ -5,12 +5,15 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+import os
+
+os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
+os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
 import dataclasses
 import functools
 import gc
 import logging
-import os
 
 import xarray
 from ai_models.model import Model
@@ -24,7 +27,7 @@ LOG = logging.getLogger(__name__)
 try:
     import haiku as hk
     import jax
-    from graphcast import autoregressive
+    from graphcast import rollout
     from graphcast import casting
     from graphcast import checkpoint
     from graphcast import data_utils
@@ -137,11 +140,6 @@ class GraphcastModel(Model):
                     stddev_by_level=stddev_by_level,
                 )
 
-                # Wraps everything so the one-step model can produce trajectories.
-                predictor = autoregressive.Predictor(
-                    predictor,
-                    gradient_checkpointing=True,
-                )
                 return predictor
 
             @hk.transform_with_state
@@ -218,12 +216,14 @@ class GraphcastModel(Model):
                 forcings.to_netcdf("forcings_xr.nc")
 
         with self.timer("Doing full rollout prediction in JAX"):
-            output = self.model(
-                rng=jax.random.PRNGKey(0),
-                inputs=input_xr,
-                targets_template=template,
-                forcings=forcings,
-            )
+            output = rollout.chunked_prediction(
+                    predictor_fn=self.model,     
+                    rng=jax.random.PRNGKey(0),
+                    inputs=input_xr,
+                    targets_template=template,
+                    forcings=forcings,
+                    num_steps_per_chunk=1,
+                )
 
             if self.debug:
                 output.to_netcdf("output.nc")
